@@ -15,7 +15,7 @@ func startServer(addr chan string) {
 	if err != nil {
 		log.Fatal("network error:", err)
 	}
-	log.Println("start rcp server on", l.Addr())
+	log.Println("start rpc server on", l.Addr())
 	addr <- l.Addr().String()
 	happyrpc.Accept(l)
 }

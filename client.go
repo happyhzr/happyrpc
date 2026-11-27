@@ -93,7 +93,7 @@ func (c *Client) receive() {
 	var err error
 	for err == nil {
 		h := &codec.Header{}
-		err := c.cc.ReadHeader(h)
+		err = c.cc.ReadHeader(h)
 		if err != nil {
 			break
 		}
