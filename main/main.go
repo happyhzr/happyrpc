@@ -1,14 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/happyhzr/happyrpc"
-	"github.com/happyhzr/happyrpc/codec"
 )
 
 func startServer(addr chan string) {
@@ -24,20 +23,24 @@ func startServer(addr chan string) {
 func main() {
 	addr := make(chan string)
 	go startServer(addr)
-	conn, _ := net.Dial("tcp", <-addr)
-	defer conn.Close()
+	client, _ := happyrpc.Dial("tcp", <-addr)
+	defer func() {
+		client.Close()
+	}()
 	time.Sleep(time.Second)
-	json.NewEncoder(conn).Encode(happyrpc.DefaultOption)
-	cc := codec.NewGobCodec(conn)
+	wg := &sync.WaitGroup{}
 	for i := 0; i < 5; i++ {
-		h := &codec.Header{
-			ServiceMethod: "Foo.Sum",
-			Seq:           uint64(i),
-		}
-		cc.Write(h, fmt.Sprintf("happyrpc req %d", h.Seq))
-		cc.ReadHeader(h)
-		reply := ""
-		cc.ReadBody(&reply)
-		log.Println("reply:", reply)
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			args := fmt.Sprintf("happyrpc req %d", i)
+			reply := ""
+			err := client.Call("Foo.Sum", args, &reply)
+			if err != nil {
+				log.Fatal("call Foo.Sum error:", err)
+			}
+			log.Println("reply:", reply)
+		}(i)
 	}
+	wg.Wait()
 }
